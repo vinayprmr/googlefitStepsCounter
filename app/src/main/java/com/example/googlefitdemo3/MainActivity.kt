@@ -1,12 +1,9 @@
 package com.example.googlefitdemo3
 
 import android.Manifest
-import android.content.Intent
 import android.content.pm.PackageManager
-import android.net.Uri
 import android.os.Build
 import android.os.Bundle
-import android.provider.Settings
 import android.util.Log
 import androidx.annotation.RequiresApi
 import androidx.appcompat.app.AppCompatActivity
@@ -30,6 +27,10 @@ class MainActivity : AppCompatActivity() {
     private val fitnessOptions = FitnessOptions.builder()
         .addDataType(DataType.AGGREGATE_STEP_COUNT_DELTA, FitnessOptions.ACCESS_READ)
         .addDataType(DataType.TYPE_STEP_COUNT_DELTA, FitnessOptions.ACCESS_READ)
+        .addDataType(DataType.TYPE_HEART_RATE_BPM, FitnessOptions.ACCESS_READ)
+        .addDataType(DataType.AGGREGATE_HEART_RATE_SUMMARY, FitnessOptions.ACCESS_READ)
+        .addDataType(DataType.TYPE_CALORIES_EXPENDED, FitnessOptions.ACCESS_READ)
+        .addDataType(DataType.AGGREGATE_CALORIES_EXPENDED, FitnessOptions.ACCESS_READ)
         .build()
 
     private val runningQOrLater =
@@ -43,12 +44,9 @@ class MainActivity : AppCompatActivity() {
         checkPermissionsAndRun(FitActionRequestCode.READ_DATA)
         binding.btnRefresh.setOnClickListener {
             readData()
+            readBpm()
+            readCal()
         }
-        Log.e("ddd ","dddd")
-        Log.e("ddd ","dddd")
-        Log.e("ddd ","dddd")
-        Log.e("ddd ","dddd")
-        Log.e("ddd ","dddd")
     }
 
     @RequiresApi(Build.VERSION_CODES.Q)
@@ -76,6 +74,8 @@ class MainActivity : AppCompatActivity() {
     private fun performActionForRequestCode(requestCode: FitActionRequestCode) {
         if (requestCode == FitActionRequestCode.READ_DATA) {
             readData()
+            readBpm()
+            readCal()
         }
 
     }
@@ -93,11 +93,45 @@ class MainActivity : AppCompatActivity() {
                     dataSet.isEmpty -> 0
                     else -> dataSet.dataPoints.first().getValue(Field.FIELD_STEPS).asInt()
                 }
-                Log.i(TAG, "Total steps: $total")
+                Log.e(TAG, "Total steps: $total")
                 binding.tvSteps.text = total.toString()
             }
             .addOnFailureListener { e ->
                 Log.w(TAG, "There was a problem getting the step count.", e)
+            }
+    }
+
+    private fun readBpm() {
+        Fitness.getHistoryClient(this, getGoogleAccount())
+            .readDailyTotal(DataType.TYPE_HEART_RATE_BPM)
+            .addOnSuccessListener { dataSet ->
+                val total = when {
+                    dataSet.isEmpty -> 0
+                    else -> dataSet.dataPoints.first().getValue(Field.FIELD_AVERAGE).asFloat()
+                        .toInt()
+                }
+                Log.e(TAG, "BPM 1: $total")
+                binding.tvBpm.text = total.toString()
+            }
+            .addOnFailureListener { e ->
+                Log.w(TAG, "There was a problem getting the BPM count.", e)
+            }
+    }
+
+    private fun readCal() {
+        Fitness.getHistoryClient(this, getGoogleAccount())
+            .readDailyTotal(DataType.TYPE_CALORIES_EXPENDED)
+            .addOnSuccessListener { dataSet ->
+                val total = when {
+                    dataSet.isEmpty -> 0
+                    else -> dataSet.dataPoints.first().getValue(Field.FIELD_CALORIES).asFloat()
+                        .toInt()
+                }
+                Log.e(TAG, "Calories: $total")
+                binding.tvCalories.text = total.toString()
+            }
+            .addOnFailureListener { e ->
+                Log.w(TAG, "There was a problem getting the Calories.", e)
             }
     }
 
@@ -164,35 +198,36 @@ class MainActivity : AppCompatActivity() {
                 fitSignIn(fitActionRequestCode)
             }
             else -> {
-                // Permission denied.
+                /* // Permission denied.
 
-                // In this Activity we've chosen to notify the user that they
-                // have rejected a core permission for the app since it makes the Activity useless.
-                // We're communicating this message in a Snackbar since this is a sample app, but
-                // core permissions would typically be best requested during a welcome-screen flow.
+                 // In this Activity we've chosen to notify the user that they
+                 // have rejected a core permission for the app since it makes the Activity useless.
+                 // We're communicating this message in a Snackbar since this is a sample app, but
+                 // core permissions would typically be best requested during a welcome-screen flow.
 
-                // Additionally, it is important to remember that a permission might have been
-                // rejected without asking the user for permission (device policy or "Never ask
-                // again" prompts). Therefore, a user interface affordance is typically implemented
-                // when permissions are denied. Otherwise, your app could appear unresponsive to
-                // touches or interactions which have required permissions.
+                 // Additionally, it is important to remember that a permission might have been
+                 // rejected without asking the user for permission (device policy or "Never ask
+                 // again" prompts). Therefore, a user interface affordance is typically implemented
+                 // when permissions are denied. Otherwise, your app could appear unresponsive to
+                 // touches or interactions which have required permissions.
 
-                Snackbar.make(
-                    findViewById(R.id.main_activity_view),
-                    R.string.permission_denied_explanation,
-                    Snackbar.LENGTH_INDEFINITE)
-                    .setAction(R.string.settings) {
-                        // Build intent that displays the App settings screen.
-                        val intent = Intent()
-                        intent.action = Settings.ACTION_APPLICATION_DETAILS_SETTINGS
-                        val uri = Uri.fromParts("package",
-                            BuildConfig.APPLICATION_ID, null)
-                        intent.data = uri
-                        intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK
-                        startActivity(intent)
-                    }
-                    .show()
+                 Snackbar.make(
+                     findViewById(R.id.main_activity_view),
+                     R.string.permission_denied_explanation,
+                     Snackbar.LENGTH_INDEFINITE)
+                     .setAction(R.string.settings) {
+                         // Build intent that displays the App settings screen.
+                         val intent = Intent()
+                         intent.action = Settings.ACTION_APPLICATION_DETAILS_SETTINGS
+                         val uri = Uri.fromParts("package",
+                             BuildConfig.APPLICATION_ID, null)
+                         intent.data = uri
+                         intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK
+                         startActivity(intent)
+                     }
+                     .show()*/
             }
         }
     }
 }
+
